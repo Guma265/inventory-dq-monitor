@@ -1,0 +1,4 @@
+snapshot_date,total_skus,total_stock_units,inventory_value_cost,inventory_value_retail,low_stock_skus,out_of_stock_skus
+2026-01-15,15,204,24218.0,38426.0,3,0
+2026-01-16,13,162,13504.0,21888.0,6,1
+2026-01-17,13,122,11441.0,19348.0,6,2
