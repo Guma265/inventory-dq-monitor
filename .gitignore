@@ -2,6 +2,21 @@
 __pycache__/
 *.pyc
 
+# Virtual environment
+.venv/
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# OS files
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
 # SQLite
 *.db
 *.sqlite
