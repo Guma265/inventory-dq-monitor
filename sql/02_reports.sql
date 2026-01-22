@@ -1,24 +1,42 @@
--- Reporte diario (agregado)
-WITH cleaned AS (
-  SELECT
-    snapshot_date,
-    TRIM(sku) AS sku,
-    unit_cost,
-    unit_price,
-    stock_on_hand,
-    reorder_point
-  FROM stg_inventory_snapshot
-  WHERE sku IS NOT NULL AND TRIM(sku) <> ''
-    AND snapshot_date GLOB '????-??-??'  -- formato esperado YYYY-MM-DD
-)
+-- =========================================
+-- Inventory DQ Monitor - Pipeline Reports
+-- =========================================
+
+-- 1) Quality overview per run
+-- Detects overall data quality and rejection volume
+
 SELECT
-  snapshot_date,
-  COUNT(DISTINCT sku) AS total_skus,
-  SUM(stock_on_hand) AS total_stock_units,
-  ROUND(SUM(stock_on_hand * unit_cost), 2) AS inventory_value_cost,
-  ROUND(SUM(stock_on_hand * unit_price), 2) AS inventory_value_retail,
-  SUM(CASE WHEN stock_on_hand <= reorder_point THEN 1 ELSE 0 END) AS low_stock_skus,
-  SUM(CASE WHEN stock_on_hand = 0 THEN 1 ELSE 0 END) AS out_of_stock_skus
-FROM cleaned
-GROUP BY snapshot_date
-ORDER BY snapshot_date;
+  run_id,
+  COUNT(*)                        AS files_processed,
+  ROUND(AVG(reject_rate), 3)      AS avg_reject_rate,
+  SUM(rows_rejected)              AS total_rejected_rows,
+  SUM(rows_in)                    AS total_rows
+FROM etl_quality_metrics
+GROUP BY run_id
+ORDER BY run_id DESC;
+
+
+-- 2) Stability score per run
+-- 1.0 = perfect, <0.9 warning, <0.8 alert
+
+SELECT
+  run_id,
+  ROUND(
+    1.0 - (SUM(rows_rejected) * 1.0 / NULLIF(SUM(rows_in), 0)),
+    3
+  ) AS stability_score
+FROM etl_quality_metrics
+GROUP BY run_id
+ORDER BY run_id DESC;
+
+
+-- 3) Performance trend by day
+-- Detects execution time degradation
+
+SELECT
+  substr(created_at_utc, 1, 10) AS day,
+  COUNT(*)                     AS files_processed,
+  ROUND(AVG(duration_ms), 1)   AS avg_duration_ms
+FROM etl_quality_metrics
+GROUP BY day
+ORDER BY day;
